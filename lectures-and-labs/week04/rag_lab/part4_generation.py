@@ -72,7 +72,10 @@ def initialize_llm():
     # GitHub Copilot Prompt: "Create an OpenAI client with a custom base_url from environment settings"
 
     # YOUR CODE HERE
-    pass  # Remove this line when you add your code
+    api_key, base_url, _ = llm_settings()
+    if not api_key:
+        return None
+    return OpenAI(api_key=api_key, base_url=base_url)
 
 
 def build_rag_prompt(query, context_chunks):
@@ -111,7 +114,16 @@ def build_rag_prompt(query, context_chunks):
     # GitHub Copilot Prompt: "Build a RAG prompt with grounding rules, source-labelled context chunks and the question"
 
     # YOUR CODE HERE
-    pass  # Remove this line when you add your code
+    context = "\n\n".join(
+        f"[source: {source}]\n{text}"
+        for text, source in context_chunks
+    )
+    return (
+        f"{GROUNDING_RULES}\n\n"
+        f"CONTEXT:\n{context}\n\n"
+        f"QUESTION: {query}\n\n"
+        "ANSWER:"
+    )
 
 
 def call_llm(client, prompt, max_tokens=500):
@@ -143,7 +155,13 @@ def call_llm(client, prompt, max_tokens=500):
     # GitHub Copilot Prompt: "Call an OpenAI-compatible chat completions API with a prompt"
 
     # YOUR CODE HERE
-    pass  # Remove this line when you add your code
+    _, _, model = llm_settings()
+    response = client.chat.completions.create(
+        model=model,
+        max_tokens=max_tokens,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.choices[0].message.content
 
 
 def rag_query(question, collection, embedding_model, llm_client, top_k=3):
@@ -181,7 +199,21 @@ def rag_query(question, collection, embedding_model, llm_client, top_k=3):
     # GitHub Copilot Prompt: "Implement a RAG pipeline: embed the question, query ChromaDB, build a prompt from the hits, call the model, return the answer with its sources"
 
     # YOUR CODE HERE
-    pass  # Remove this line when you add your code
+    query_embedding = embedding_model.encode(question)
+    results = collection.query(
+        query_embeddings=[query_embedding.tolist()],
+        n_results=top_k,
+    )
+    texts = results["documents"][0]
+    sources = [metadata["source"] for metadata in results["metadatas"][0]]
+
+    prompt = build_rag_prompt(question, list(zip(texts, sources)))
+    answer = call_llm(llm_client, prompt) if llm_client else None
+    return {
+        "answer": answer,
+        "sources": list(dict.fromkeys(sources)),
+        "context_used": texts,
+    }
 
 
 def test_rag_system():

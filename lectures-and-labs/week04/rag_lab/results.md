@@ -60,8 +60,8 @@ _One sentence on what goes wrong at each extreme:_
 ```text
 Whole corpus size: ................. [approx tokens]
 Question asked: .................... [your question]
-  RAG answer: ...................... [response]
-  Whole-corpus answer: ............. [response]
+RAG answer: ...................... [response]
+Whole-corpus answer: ............. [response]
 Which was better? .................. [RAG / long context / no difference]
 At what corpus size would this flip? [your reasoning]
 ```

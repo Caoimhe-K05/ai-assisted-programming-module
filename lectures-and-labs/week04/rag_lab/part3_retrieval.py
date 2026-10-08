@@ -50,7 +50,19 @@ def semantic_search(query, collection, model, top_k=3):
     # GitHub Copilot Prompt: "Query a ChromaDB collection with an embedding and return text, metadata source and similarity for the top k hits"
 
     # YOUR CODE HERE
-    pass  # Remove this line when you add your code
+    query_embedding = model.encode(query)
+    results = collection.query(
+        query_embeddings=[query_embedding.tolist()],
+        n_results=top_k,
+    )
+
+    documents = results["documents"][0]
+    metadatas = results["metadatas"][0]
+    distances = results["distances"][0]
+    return [
+        (text, metadata["source"], 1 - distance)
+        for text, metadata, distance in zip(documents, metadatas, distances)
+    ]
 
 
 def filter_by_relevance(results, min_similarity=0.2):
@@ -79,7 +91,7 @@ def filter_by_relevance(results, min_similarity=0.2):
     # GitHub Copilot Prompt: "Filter a list of (text, source, score) tuples by a minimum score"
 
     # YOUR CODE HERE
-    pass  # Remove this line when you add your code
+    return [result for result in results if result[2] >= min_similarity]
 
 
 def manage_context_window(results, max_tokens=1500):
@@ -103,7 +115,16 @@ def manage_context_window(results, max_tokens=1500):
     # GitHub Copilot Prompt: "Combine labelled text chunks with separators while staying within a token budget"
 
     # YOUR CODE HERE
-    pass  # Remove this line when you add your code
+    pieces = []
+    separator = "\n\n---\n\n"
+
+    for text, source, _ in results:
+        piece = f"[source: {source}]\n{text}"
+        candidate = separator.join([*pieces, piece])
+        if len(candidate) // 4 <= max_tokens:
+            pieces.append(piece)
+
+    return separator.join(pieces)
 
 
 def display_results(query, results):

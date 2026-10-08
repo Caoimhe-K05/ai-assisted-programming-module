@@ -53,7 +53,11 @@ def load_documents(data_dir="data"):
     # GitHub Copilot Prompt: "Read all text files from a directory and return a sorted list of (filename, content) tuples"
 
     # YOUR CODE HERE
-    pass  # Remove this line when you add your code
+    for filename in sorted(os.listdir(data_dir)):
+        if filename.endswith(".txt"):
+            filepath = os.path.join(data_dir, filename)
+            with open(filepath, "r", encoding="utf-8") as file:
+                documents.append((filename, file.read()))
 
     return documents
 
@@ -89,7 +93,16 @@ def chunk_text(text, chunk_words=DEFAULT_CHUNK_WORDS, overlap_words=DEFAULT_OVER
     # GitHub Copilot Prompt: "Split text into overlapping chunks of N words with M words of overlap"
 
     # YOUR CODE HERE
-    pass  # Remove this line when you add your code
+    words = text.split()
+    step = chunk_words - overlap_words
+    start = 0
+
+    while start < len(words):
+        chunk = words[start:start + chunk_words]
+        chunks.append(" ".join(chunk))
+        if start + chunk_words >= len(words):
+            break
+        start += step
 
     return chunks
 
@@ -117,7 +130,9 @@ def generate_embeddings(chunks, model_name=EMBEDDING_MODEL):
     # GitHub Copilot Prompt: "Use sentence-transformers to encode a list of text chunks"
 
     # YOUR CODE HERE
-    pass  # Remove this line when you add your code
+    model = SentenceTransformer(model_name)
+    embeddings = model.encode(chunks)
+    return embeddings
 
 
 def store_in_chromadb(chunks, embeddings, sources, collection_name=COLLECTION):
@@ -157,7 +172,21 @@ def store_in_chromadb(chunks, embeddings, sources, collection_name=COLLECTION):
     # GitHub Copilot Prompt: "Store text chunks, embeddings and per-chunk metadata in a ChromaDB collection"
 
     # YOUR CODE HERE
-    pass  # Remove this line when you add your code
+    client = chromadb.PersistentClient(path="./chroma_db")
+    if collection_name in client.list_collections():
+        client.delete_collection(name=collection_name)
+
+    collection = client.create_collection(
+        name=collection_name,
+        configuration={"hnsw": {"space": "cosine"}},
+    )
+    collection.add(
+        documents=chunks,
+        embeddings=embeddings.tolist(),
+        metadatas=[{"source": source} for source in sources],
+        ids=[f"chunk_{i}" for i in range(len(chunks))],
+    )
+    return collection
 
 
 def main():
